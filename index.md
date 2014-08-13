@@ -46,7 +46,7 @@ There is a significant amount of software used to make the objectives here-in po
 Documentation References
 ------------------------
 
-My goal with this website is to save you the time and trouble of researching all of this stuff yourself.  I spent the better part of a week reading through documentation about best practices, troubleshooting issues that I encountered, and setting up a working environment of my own (mostly) following the same steps in my guides.  Below is a list of blog posts and documentation I found exceptionally helpful in this process, some of which contains other attempts at supplying a guide for the same or similar objectives.  Thanks for all of those listed or not who provided helpful information publicly online.  Google-fu helped me in this process more than once.
+My goal with this website is to save you the time and trouble of researching all of this stuff yourself.  I spent the better part of a week reading through documentation about best practices, troubleshooting issues that I encountered, and setting up a working environment of my own mostly following the same steps in my guides.  Below is a list of blog posts and documentation I found exceptionally helpful in this process, some of which contains other attempts at supplying a guide for the same or similar objectives.  Thanks for all of those listed or not who provided helpful information publicly online.  Google-fu helped me in this process more than once.
 
 * [Drew Crawford's Tutorial "NSA-proof your email in 2 hours"](http://sealedabstract.com/code/nsa-proof-your-e-mail-in-2-hours/)
 * [OpenPGP Best Practices](https://help.riseup.net/en/gpg-best-practices)
