@@ -54,6 +54,9 @@ My goal with this website is to save you the time and trouble of researching all
 * [GreenSQL's MySQL Security Best Practices](http://www.greensql.com/content/mysql-security-best-practices-hardening-mysql-tips)
 * [The Enigmail Quick Start Guide](https://www.enigmail.net/documentation/quickstart.php)
 * [madboa's GPG Quick Start Guide](http://www.madboa.com/geek/gpg-quickstart/)
+* [duraconf: Hardened configs for SSL/TLS](https://github.com/ioerror/duraconf)
+* [Debian Mempo Project: Hardened Security and Privacy](http://mempo.org/)
+* [Strengthening Encrypted Private SSH Keys](https://pthree.org/2013/05/27/strengthen-your-private-encrypted-ssh-keys/)
 
 
 Feedback & Contacting Me
