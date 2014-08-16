@@ -6,3 +6,6 @@
 [Docker](docker.md)
 [OpenPGP](gnupg.md)
 [Keysigning](http://keypolicy.tristor.ro/)
+
+[gimmick:theme (inverse: false)](bootstrap)
+[gimmick:ThemeChooser](Change theme)
