@@ -60,6 +60,7 @@ My goal with this website is to save you the time and trouble of researching all
 * [Postfix TLS Perfect Forward Secrecy](http://www.postfix.org/FORWARD_SECRECY_README.html)
 * [Best Practical SSL Config](http://www.internetstaff.com/blog/best-practical-ssl-configuration/)
 * [Dovecot TLS Perfect Forward Secrecy](https://sys4.de/en/blog/2013/08/15/dovecot-tls-perfect-forward-secrecy/)
+* [DNSBL and Greylisting Hybrid Approach](http://www.danplanet.com/blog/2010/09/01/a-dnsbl-and-greylisting-hybrid-approach/)
 
 
 Feedback & Contacting Me
