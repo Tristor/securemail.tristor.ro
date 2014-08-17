@@ -363,7 +363,7 @@ New Encfs Password:
 Verify Encfs Password:
 ```
 
-In the case of my configuration, I was using a Performance Cloud Server from Rackspace.  These have a 40GB primary volume for / and a 20, 40, or 80GB secondary volume that is unpartitioned.  I partitioned my secondary volume as one partition, formatted it as EXT4, and mounted it to /mail and set it in my /etc/fstab.  If your configuration does not allow you to put the mail on its own partition, a folder is fine too.  EncFS does not care either way.
+In the case of my configuration, I was using a [Performance Cloud Server from Rackspace](http://www.rackspace.com/cloud/).  These have a 40GB primary volume for / and a 20, 40, or 80GB secondary volume that is unpartitioned.  I partitioned my secondary volume as one partition, formatted it as EXT4, and mounted it to /mail and set it in my /etc/fstab.  If your configuration does not allow you to put the mail on its own partition, a folder is fine too.  EncFS does not care either way.
 
 
 Postfix
@@ -692,7 +692,7 @@ And finally we will do our SSL configuration in /etc/dovecot/conf.d/10-ssl.conf.
 [gimmick:gist](fce5c39e16d5ab81592f)
 
 
-At this point email should basically work, however since we did some pre-configuration it won't.  We still need to configure postfwd, postgrey, OpenDKIM, and dspam.  Before we move on to that, though, here's a quick primer on how to generate a self-signed certificate and key for use with Postfix and Dovecot until you can get a real cert.
+At this point email should basically work, however since we did some pre-configuration it won't.  We still need to configure PigeonHole, postfwd, postgrey, OpenDKIM, and dspam.  Before we move on to that, though, here's a quick primer on how to generate a self-signed certificate and key for use with Postfix and Dovecot until you can get a real cert.
 
 ```
 openssl req -new -x509 -days 1000 -nodes -out "/etc/ssl/certs/dovecot.pem" -keyout "/etc/ssl/private/dovecot.pem"
@@ -703,5 +703,194 @@ Anywhere you've seen me specify my certificates you can instead specify these so
 Anti-Spam Configuration
 -----------------------
 
+### OpenDKIM
 
+This is going to be relatively quick and painless, however you'll need to make some DNS entries as I alluded to near the beginning of this document.  Fill in $mailname with the 'mail name' you used in Postfix and previously.
+
+```
+apt-get install -y opendkim opendkim-tools
+mkdir -pv /etc/opendkim/
+chown -Rv opendkim:opendkim /etc/opendkim
+chmod go-rwx /etc/opendkim/*
+cd /etc/opendkim/
+opendkim-genkey -r -h rsa-sha256 -d $mailname -s mail
+mv -v mail.private mail
+cat mail.txt
+```
+
+The final step will output the DKIM key to the terminal, however by default it puts the hash value as rsa-sha256, which should actually be just sha256.  See below for a valid example from my configuration
+
+```
+mail._domainkey.tristor.ro.	300	IN	TXT	"v=DKIM1; h=sha256; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCrhdZgI0Qnig0wTNERIdeqY4j1I8t5F6upIoB/s7cNfab5bpui0hCxppAy926rOZ5TmMO1gXP5zCKy6JPWUUFF9hANFonXkawZjRq5oMYOnQ0EOhUqw86ezv2sX6sJbI1gaN7kpa3/FNn3utJkAH4iu7RT0JK4ff0ym7xXQ8HRYQIDAQAB"
+```
+
+At any rate make your DNS changes and then you need to create your KeyTable, SigningTable, and TrustHosts files.  Modifying the below to match your appropriate 'mail name'
+
+/etc/opendkim/KeyTable
+```
+tristor.ro tristor.ro:mail:/etc/opendkim/mail
+```
+
+/etc/opendkim/SigningTable
+```
+*@tristor.ro tristor.ro
+```
+
+/etc/opendkim/TrustedHosts
+```
+127.0.0.1
+```
+
+Finally you have to make your OpenDKIM configuration file.
+
+/etc/opendkim.conf
+```
+##
+## opendkim.conf -- configuration file for OpenDKIM filter
+##
+Canonicalization        relaxed/relaxed
+ExternalIgnoreList      refile:/etc/opendkim/TrustedHosts
+InternalHosts           refile:/etc/opendkim/TrustedHosts
+KeyTable                refile:/etc/opendkim/KeyTable
+LogWhy                  Yes
+MinimumKeyBits          1024
+Mode                    sv
+PidFile                 /var/run/opendkim/opendkim.pid
+SigningTable            refile:/etc/opendkim/SigningTable
+Socket                  inet:8891@localhost
+Syslog                  Yes
+SyslogSuccess           Yes
+TemporaryDirectory      /var/tmp
+UMask                   022
+UserID                  opendkim:opendkim
+```
+
+Since making these files may have caused them to be owned by root instead of the opendkim user, we need to change their ownership again to be sure (this resolves an issue with 4.7.1 errors I saw) although we want to ensure the opendkim user doesn't have write permissions to the private key.
+
+```
+chown -Rv opendkim:opendkim /etc/opendkim
+chown root:opendkim /etc/opendkim/mail
+chmod g+r /etc/opendkim/mail
+```
+
+Postfix was pre-configured to work with OpenDKIM so we just need to bounce the services and move on.
+
+```
+service opendkim restart
+service postfix restart
+```
+
+Your SPF configuration should have already been completed previously, but just as an example here is my working config again.  If you haven't made this change yet, you need your SPF configuration done as well in DNS, might as well do it at the same time you're doing the OpenDKIM stuff.
+
+```
+tristor.ro.		300	IN	TXT	"v=spf1 mx ip4:23.253.125.249/32 -all"
+```
+
+You should also be setting your Reverse DNS information for both IPv4 and IPv6 on your server.  This is known as the PTR or pointer record.  As an example, this is done from the server details page in the Cloud Control Panel if you're using a [Rackspace Cloud Server](http://www.rackspace.com/cloud/).  Otherwise you should check the documentation from your hosting service or contact their Support services for assistance.
+
+
+### dspam and PigeonHole
+
+You can use any anti-spam service you like, however for my preferences and the purpose of this tutorial we will be using dspam.  Another popular tool is SpamAssasin, however if you use SpamAssasin you will need to make some significant changes to the anti-spam configuration since SpamAssasin replaces the need for postfwd and integrates directly with PigeonHole and Postgrey.  This could be beneficial to you, but I find my configuration more simplistic and equal or better in effectiveness.
+
+```
+apt-get install -y dspam dovecot-antispam postfix-pcre dovecot-sieve
+```
+
+Make changes to your /etc/dspam/dspam.conf so that the follow paramaters match my provided configuration (some are changes, some are additions)
+
+```
+Home /mail/decrypted-mail/dspam
+TrustedDeliveryAgent "/usr/sbin/sendmail"
+UntrustedDeliveryAgent "/usr/lib/dovecot/deliver -d %u"
+Tokenizer osb
+IgnoreHeader X-Spam-Status
+IgnoreHeader X-Spam-Scanned
+IgnoreHeader X-Virus-Scanner-Result
+IgnoreHeader X-Virus-Scanned
+IgnoreHeader X-DKIM
+IgnoreHeader DKIM-Signature
+IgnoreHeader DomainKey-Signature
+IgnoreHeader X-Google-Dkim-Signature
+ParseToHeaders on
+ChangeModeOnParse off
+ChangeUserOnParse full
+ServerPID  /var/run/dspam/dspam.pid
+ServerDomainSocketPath "/var/run/dspam/dspam.sock"
+ClientHost /var/run/dspam/dspam.sock
+```
+
+Then create the dspam home directory.
+
+```
+mkdir -pv /mail/decrypted-mail/dspam
+chown dspam:dspam /mail/decrypted-mail/dspam
+```
+
+Edit the delivery rules in /etc/dspam/default.prefs
+
+```
+spamAction=deliver         # { quarantine | tag | deliver } -> default:quarantine
+signatureLocation=headers  # { message | headers } -> default:message
+showFactors=on
+```
+
+Now edit the postfix dspam rule file in /etc/postfix/dspam_filter_access
+```
+/./   FILTER dspam:unix:/run/dspam/dspam.sock
+```
+
+Now we edit Dovecot configuration to integrate dspam and PigeonHole into IMAP and LMTP
+
+Edit /etc/dovecot/conf.d/20-imap.conf
+
+```
+mail_plugins = $mail_plugins antispam
+```
+
+Edit /etc/dovecot/conf.d/20-lmtp.conf
+
+```
+mail_plugins = $mail_plugins sieve
+```
+
+Now we need to create a configuration to tell PigeonHole to move spam into a Spam IMAP folder for your user.  Edit /mail/decrypted-mail/$mailname/$virtualuser/.dovecot.sieve
+
+```
+require ["regex", "fileinto", "imap4flags"];
+# Catch mail tagged as Spam, except Spam retrained and delivered to the mailbox
+if allof (header :regex "X-DSPAM-Result" "^(Spam|Virus|Bl[ao]cklisted)$",
+          not header :contains "X-DSPAM-Reclassified" "Innocent") {
+  # Mark as read
+  setflag "\\Seen";
+  # Move into the Junk folder
+  fileinto "Spam";
+  # Stop processing here
+  stop;
+}
+```
+
+Then we edit /etc/dovecot/conf.d/90-plugin.conf.  We'll be adding some lines into the plugin{} dictionary.
+
+```
+   # Antispam (DSPAM)
+   antispam_backend = dspam
+   antispam_allow_append_to_spam = YES
+   antispam_spam = Spam;Junk
+   antispam_trash = trash;Trash
+   antispam_signature = X-DSPAM-Signature
+   antispam_signature_missing = error
+   antispam_dspam_binary = /usr/bin/dspam
+   antispam_dspam_args = --user;%u;--deliver=;--source=error
+   antispam_dspam_spam = --class=spam
+   antispam_dspam_notspam = --class=innocent
+   antispam_dspam_result_header = X-DSPAM-Result
+```
+
+Now bounce postfix and dovecot
+
+```
+service postfix restart
+service dovecot restart
+```
 
