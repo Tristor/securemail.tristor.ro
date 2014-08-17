@@ -57,6 +57,9 @@ My goal with this website is to save you the time and trouble of researching all
 * [duraconf: Hardened configs for SSL/TLS](https://github.com/ioerror/duraconf)
 * [Debian Mempo Project: Hardened Security and Privacy](http://mempo.org/)
 * [Strengthening Encrypted Private SSH Keys](https://pthree.org/2013/05/27/strengthen-your-private-encrypted-ssh-keys/)
+* [Postfix TLS Perfect Forward Secrecy](http://www.postfix.org/FORWARD_SECRECY_README.html)
+* [Best Practical SSL Config](http://www.internetstaff.com/blog/best-practical-ssl-configuration/)
+* [Dovecot TLS Perfect Forward Secrecy](https://sys4.de/en/blog/2013/08/15/dovecot-tls-perfect-forward-secrecy/)
 
 
 Feedback & Contacting Me

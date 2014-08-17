@@ -480,3 +480,228 @@ cp /etc/postfix/main.cf /etc/postfix/main.cf.orig
 cp /etc/postfix/master.cf /etc/postfix/master.cf.orig
 ```
 
+Then you want to create your configuration to look like the following.  Note, you will need to provide a self-signed certificate if you don't want to purchase a legitimate trusted certificate.  I purchased my RapidSSL through [Namecheap](http://www.namecheap.com/?aff=72423) for $38 for 4 years which was one of the best prices I found.  If you choose to purchase a certificate, you will need to START with a self-signed, because a verification email to postmaster@yourdomain.com is sent as part of the domain validation process.  
+
+[gimmick:gist](a9a59c8c809e5b188f51)
+
+The changes made from the defaults in the above configuration file essentially do the following:
+
+* Configure TLS with secure settings ensuring Perfect Forward Secrecy
+* Configure SASL for use when connecting between Postfix and Dovecot on your server
+* Set Postfix to only relay mail locally, since Dovecot will handle IMAP
+* Configure it to transport over LMTP
+* Configure it to use MySQL maps for virtual domains, aliases, and users.
+* Configure mail to go through OpenDKIM (which we will configurate later)
+* Configure mail to go through dspam and postfwd(which we will configure later)
+
+Now we're going to create those MySQL maps, as before $mailuserpass needs to be filled in with the password of the 'mailuser' DB user you created previously.
+
+/etc/postfix/mysql-virtual-mailbox-domains.cf
+```
+user = mailuser
+password = $mailuserpass
+hosts = 127.0.0.1
+dbname = mailserver
+query = SELECT 1 FROM virtual_domains WHERE name='%s'
+```
+
+/etc/postfix/mysql-virtual-mailbox-domains.cf
+```
+user = mailuser
+password = $mailuserpass
+hosts = 127.0.0.1
+dbname = mailserver
+query = SELECT 1 FROM virtual_users WHERE email='%s'
+```
+
+/etc/postfix/mysql-virtual-alias-maps.cf
+```
+user = mailuser
+password = $mailuserpass
+hosts = 127.0.0.1
+dbname = mailserver
+query = SELECT destination FROM virtual_aliases WHERE source='%s'
+```
+
+
+At this point you should restart Postfix and verify that your virtual mapping works.
+
+```
+service postfix restart
+postmap -q $mailname mysql:/etc/postfix/mysql-virtual-mailbox-domains.cf
+postmap -q $youremailaddress mysql:/etc/postfix/mysql-virtual-mailbox-maps.cf
+``` 
+
+postmap will respond with '1' if everything worked properly.
+
+
+Now we will change your second Postfix config file before we move on.
+
+### Postfix Master Config File
+
+You've already backed this file up, so just make it look like below essentially.
+
+[gimmicks:gist](04d818677efc1b825f77)
+
+This will enable Submission (StartTLS compliant SMTPd) with appropriate options, SMTPS (SSL complient SMTPd) with appropriate options, and add hooks for dspam and dovecot-sieve (which will be setup later)
+
+This config file is now finished, or should be.
+
+
+Dovecot
+-------
+
+First let's backup your existing configuration files
+```
+cp /etc/dovecot/dovecot.conf /etc/dovecot/dovecot.conf.orig
+cp /etc/dovecot/conf.d/10-mail.conf /etc/dovecot/conf.d/10-mail.conf.orig
+cp /etc/dovecot/conf.d/10-auth.conf /etc/dovecot/conf.d/10-auth.conf.orig
+cp /etc/dovecot/dovecot-sql.conf.ext /etc/dovecot/dovecot-sql.conf.ext.orig
+cp /etc/dovecot/conf.d/10-master.conf /etc/dovecot/conf.d/10-master.conf.orig
+cp /etc/dovecot/conf.d/10-ssl.conf /etc/dovecot/conf.d/10-ssl.conf.orig
+cp /etc/dovecot/conf.d/10-logging.conf /etc/dovecot/conf.d/10-logging.conf.orig
+```
+
+First let's edit the main Dovecot configuration file, /etc/dovecot/dovecot.conf
+
+Down at the bottom enable imap and lmtp
+```
+protocols = imap lmtp
+```
+
+Then change /etc/dovecot/conf.d/10-mail.conf so the variables below match my provided parameters
+
+```
+mail_location = maildir:/mail/decrypted-mail/%d/%n
+mail_privileged_group = mail
+first_valid_uid = 0
+```
+
+Now we edit the auth configuration in /etc/dovecot/conf.d/10-auth.conf
+
+In this file we'll be commenting out with a '#' one line, and uncommenting another to use MySQL rather than local UNIX accounts for auth down near the bottom in addition to changing the other two parameters.
+
+```
+disable_plaintext_auth = yes
+auth_mechanisms = plain login
+#!include auth-system.conf.ext
+!include auth-sql.conf.ext
+```
+
+Now let's configure Dovecot's SQL extension in /etc/dovecot/conf.d/auth-sql.conf.ext
+
+```
+passdb {
+  driver = sql
+  args = /etc/dovecot/dovecot-sql.conf.ext
+}
+userdb {
+  driver = static
+  args = uid=mail gid=mail home=/decrypted-mail/%d/%n
+}
+```
+
+And finally now we configure Dovecot to connect to the proper database in /etc/dovecot/dovecot-sql.conf.ext  You will need to provide the password for your 'mailuser' DB user where $mailuserpass is.
+
+```
+driver = mysql
+connect = host=127.0.0.1 dbname=mailserver user=mailuser password=$mailuserpass
+default_pass_scheme = SHA512-CRYPT
+password_query = SELECT email as user, password FROM virtual_users WHERE email='%u';
+```
+
+Now we need to set some permissions on the Dovecot configuration so the mail group can work within it.
+
+```
+chown -R mail:dovecot /etc/dovecot
+chmod -R o-rwx /etc/dovecot
+```
+
+Finally we're going to do a config hack in Dovecot that forces the use of secure sockets by setting the listener ports to 0 and configure our LMTP service by editing /etc/dovecot/conf.d/10-master.conf
+
+```
+service imap-login {
+  inet_listener imap {
+    port = 0
+  }
+  
+service pop3-login {
+  inet_listener pop3 {
+    port = 0
+  }
+
+
+service lmtp {
+  unix_listener /var/spool/postfix/private/dovecot-lmtp {
+    mode = 0666
+    group = postfix
+    user = postfix
+  }
+  # Create inet listener only if you can't use the above UNIX socket
+  #inet_listener lmtp {
+    # Avoid making LMTP visible for the entire internet
+    #address =
+    #port =
+  #}
+  user=mail
+}
+```
+
+One last edit to that same file is to replace the entire service auth and service auth-worker sections with what I provide below:
+
+```
+service auth {
+  # auth_socket_path points to this userdb socket by default. It's typically
+  # used by dovecot-lda, doveadm, possibly imap process, etc. Its default
+  # permissions make it readable only by root, but you may need to relax these
+  # permissions. Users that have access to this socket are able to get a list
+  # of all usernames and get results of everyone's userdb lookups.
+  unix_listener /var/spool/postfix/private/auth {
+    mode = 0666
+    user = postfix
+    group = postfix
+  }
+  unix_listener auth-userdb {
+    mode = 0600
+    user = mail
+    #group =
+  }
+  # Postfix smtp-auth
+  #unix_listener /var/spool/postfix/private/auth {
+  #  mode = 0666
+  #}
+  # Auth process is run as this user.
+  user = dovecot
+}
+service auth-worker {
+  # Auth worker process is run as root by default, so that it can access
+  # /etc/shadow. If this isn't necessary, the user should be changed to
+  # $default_internal_user.
+  user = mail
+}
+```
+
+Next we're going to configure Dovecot logging to show what cipher suite is being used when it logs by editing /etc/dovecot/conf.d/10-logging.conf
+
+```
+login_log_format_elements  =  "user = <% u> method =% m% r rip = lip =% l MPID =% s% c% k"
+```
+
+And finally we will do our SSL configuration in /etc/dovecot/conf.d/10-ssl.conf.  See below for my complete configuration which enforces TLSv1+ and Perfect Forward Secrecy
+
+[gimmick:gist](fce5c39e16d5ab81592f)
+
+
+At this point email should basically work, however since we did some pre-configuration it won't.  We still need to configure postfwd, postgrey, OpenDKIM, and dspam.  Before we move on to that, though, here's a quick primer on how to generate a self-signed certificate and key for use with Postfix and Dovecot until you can get a real cert.
+
+```
+openssl req -new -x509 -days 1000 -nodes -out "/etc/ssl/certs/dovecot.pem" -keyout "/etc/ssl/private/dovecot.pem"
+```
+Anywhere you've seen me specify my certificates you can instead specify these so that you can get TLS working long enough to receive the DV validation email.  Again, I highly recommend you use a trusted cert, even if it's just for your personal use, because it will condition you to be alert around seeing certificate warnings, rather than accepting them.  Less than $40 for 4 years at [Namecheap](http://www.namecheap.com/?aff=72423) is pretty cheap.
+
+
+Anti-Spam Configuration
+-----------------------
+
+
+
