@@ -544,7 +544,16 @@ smtpd_sasl_auth_enable = yes
 smtpd_recipient_restrictions =
         permit_sasl_authenticated,
         permit_mynetworks,
+        reject_unauth_pipelining,
+        reject_non_fqdn_recipient,
+        reject_unknown_recipient_domain,
         reject_unauth_destination
+        
+smtpd_helo_required = yes
+
+# waste spammers time before rejecting them
+smtpd_delay_reject = yes
+disable_vrfy_command = yes
 
 # See /usr/share/doc/postfix/TLS_README.gz in the postfix-doc package for
 # information on enabling SSL in the smtp client.
