@@ -110,9 +110,9 @@ Run the following from your local client system:
 
 ```
 ssh-keygen -t rsa -b 4096 
-mv ~/.ssh/id_rsa ~/.ssh/id_rsa.old
+mv ~/.ssh/id_myname ~/.ssh/id_myname.old
 umask 0077
-openssl pkcs8 -topk8 -v2 3des -in ~/.ssh/id_rsa.old -out ~/.ssh/id_rsa
+openssl pkcs8 -topk8 -v2 3des -in ~/.ssh/id_myname.old -out ~/.ssh/id_myname
 ```
 
 If your new key works in the next step, or still works on an existing system you used to login to, you can delete the old key.
@@ -127,7 +127,7 @@ Attention: BEFORE making changes to disable password authentication ensure you'v
 Run the following from your client system:
 
 ```
-scp ~/.ssh/id_rsa.pub $username@example.com:~
+scp ~/.ssh/id_myname.pub $username@example.com:~
 ```
 
 Run the following from your server as your user:
@@ -138,8 +138,8 @@ chmod 700 .ssh
 cd .ssh
 touch authorized_keys
 chmod 600 authorized_keys
-cat ~/id_rsa.pub >> authorized_keys
-rm ~/id_rsa.pub
+cat ~/id_myname.pub >> authorized_keys
+rm ~/id_myname.pub
 ```
 
 ##### Configure the OpenSSH Server
