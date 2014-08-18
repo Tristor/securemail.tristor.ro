@@ -429,7 +429,7 @@ Now we can create all the tables and the primary virtual domain
 ```sql
 CREATE TABLE virtual_domains (
   id INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
-  name VARCHAR(50) NOT NULL,
+  name VARCHAR(50) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 CREATE TABLE virtual_users (
   id INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
