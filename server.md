@@ -1510,3 +1510,8 @@ FIN
 
 Congratulations, you've configured a working and secure email server.  Now you should verify it works by setting up your client to use IMAPS (port 993) and SMTP w/ STARTTLS (port 587) on your mailserver.  Send an email to your existing email account, then reply to it.  Verify you can send successfully and that you can recieve the reply. Verify you can login to webmail using your email username and password.  If everything checks out, you are good to go.
 
+
+Comments
+--------
+
+[gimmick:Disqus](tristor)
