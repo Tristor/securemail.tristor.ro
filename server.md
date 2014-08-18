@@ -616,7 +616,7 @@ dbname = mailserver
 query = SELECT 1 FROM virtual_domains WHERE name='%s'
 ```
 
-/etc/postfix/mysql-virtual-mailbox-domains.cf
+/etc/postfix/mysql-virtual-mailbox-maps.cf
 ```
 user = mailuser
 password = $mailuserpass
