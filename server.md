@@ -1278,3 +1278,235 @@ At this point you should be able to send and recieve mail via an IMAP/SMTP clien
 WebMail Configuration
 ---------------------
 
+The last service we need to setup is going to be nginx, php-fpm, and a web application called 'roundcube'.  We will be installing nginx from wheezy-backports, because it is a much newer version which enables some additional security functionality called OCSP stapling.
+
+```
+apt-get -t wheezy-backports install -y nginx
+apt-get install -y php5-fpm php5-mysql php-pear php5-mcrypt php5-dev aspell libicu44 libicu-dev
+pecl install intl
+```
+
+We're going to put our configuration for nginx into a file named /etc/nginx/sites-available/roundcube
+
+You'll need to ensure that you change the server_name parameter to match your appropriate URL and also set your SSL certificate and key to your self-signed or the appropriate one provided by your CA.
+
+```
+#rate limit requests to prevent bruteforce
+limit_req_zone $binary_remote_addr zone=one:10m rate=1r/s;
+
+server {
+    listen      80;
+#    listen     [::]:80;
+    server_name mail.tristor.ro;
+    return 301  https://$server_name$request_uri;
+}
+
+
+server {
+        listen   443 default_server ssl;
+#       listen  [::]:443;
+     
+        root /usr/share/nginx/www/roundcube;
+        index index.php index.html index.htm;
+
+        server_name mail.tristor.ro;
+
+        ssl_certificate /etc/ssl/certs/tristor.ro.combined.crt;
+        ssl_certificate_key /etc/ssl/private/tristor.ro.key;
+
+        #Enable Perfect Forward Secrecy
+        ssl_dhparam /etc/ssl/dhparam.pem;
+
+        #These should go in /etc/nginx/nginx.conf
+        #ssl_session_timeout 10m;
+        #ssl_session_cache shared:SSL:50m;
+
+        ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
+        ssl_prefer_server_ciphers on;
+        #ssl_ciphers "EECDH+ECDSA+AESGCM EECDH+aRSA+AESGCM EECDH+ECDSA+SHA384 EECDH+ECDSA+SHA256 EECDH+aRSA+SHA384 EECDH+aRSA+SHA256 EECDH+aRSA+RC4 EECDH EDH+aRSA RC4 !aNULL !eNULL !LOW !3DES !MD5 !EXP !PSK !SRP !DSS +RC4 RC4";
+        ssl_ciphers "ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:DHE-DSS-AES128-GCM-SHA256:kEDH+AESGCM:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA:ECDHE-ECDSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:DHE-DSS-AES128-SHA256:DHE-RSA-AES256-SHA256:DHE-DSS-AES256-SHA:DHE-RSA-AES256-SHA:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!3DES:!MD5:!PSK";
+
+        #Enable this for HSTS (recommended, but be careful)
+        add_header Strict-Transport-Security "max-age=15768000; includeSubdomains";
+
+        #OCSP Stapling
+        #fetch OCSP records from URL in ssl_certificate and cache them
+        ssl_stapling on;
+        ssl_stapling_verify on;
+        #verify chain of trust of OCSP response using Root CA and Intermediate certs
+        ssl_trusted_certificate /etc/ssl/certs/rapidssl.ca-inter.crt;
+        resolver 127.0.0.1;
+
+        location / {
+                try_files $uri $uri/ /index.html;
+                limit_req       zone=one burst=10 nodelay;
+        }
+
+        error_page 404 /404.html;
+
+        error_page 500 502 503 504 /50x.html;
+        location = /50x.html {
+              root /usr/share/nginx/www;
+        }
+
+        # pass the PHP scripts to FastCGI server listening on /var/run/php5-fpm.sock
+        location ~ \.php$ {
+                try_files $uri =404;
+                fastcgi_pass unix:/var/run/php5-fpm.sock;
+                fastcgi_index index.php;
+                fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+                include fastcgi_params;
+                
+        }
+
+}
+```
+
+Add the following inside the http{} block in /etc/nginx/nginx.conf
+```
+        #SSL session caching, ssl performance
+        ssl_session_cache shared:SSL:50m;
+        ssl_session_timeout 10m;
+```
+
+Now let's get roundcube downloaded and it's files put into the right place
+
+```
+cd ~
+wget http://sourceforge.net/projects/roundcubemail/files/roundcubemail/1.0.2/roundcubemail-1.0.2.tar.gz/download
+mv download roundcubemail-1.0.2.tar.gz
+tar xvf roundcubemail-1.0.2.tar.gz
+mkdir -pv /usr/share/nginx/www/roundcube
+cp ~/roundcubemail-1.0.2/* /usr/share/nginx/www/roundcube/
+```
+
+Now that this is out of the way, we need to configure PHP.
+
+In /etc/php5/fpm/php.ini there are two sets of changes that need to be made.  The first is changing a parameter, the second is adding something at the bottom of the file.
+
+Change:
+```
+cgi.fix_pathinfo=0
+```
+
+Add to bottom:
+```
+;For PECL install of INTL
+extension=intl.so
+```
+
+Then in /etc/php5/fpm/pool.d/www.conf uncomment the following two lines
+```
+listen.owner = www-data
+listen.group = www-data
+```
+
+Create your DHParam for nginx:
+
+```
+openssl dhparam -rand - 2048 >> /etc/ssl/dhparam.pem
+```
+
+Alright, so now you need to connect to your MySQL server and create a database and user for roundcube.  Please change $password to a new randomly generated password that you've stored in your password manager.  This will be used during configuration of roundcube.
+
+```
+#mysql -p
+CREATE DATABASE roundcubemail;
+GRANT ALL PRIVILEGES ON roundcubemail.* TO username@localhost IDENTIFIED BY '$password';
+FLUSH PRIVILEGES;
+```
+
+Now we need to create the tables and base data for roundcubemail.  Do this by running the following command
+
+```
+cd /usr/share/nginx/www/roundcube
+mysql -p roundcubemail < SQL/mysql.initial.sql
+```
+
+Now fix some directory permissions for roundcube
+
+```
+cd /usr/share/nginx/www/roundcube
+chmod 664 temp/
+chmod 664 logs/
+chown root:www-data logs/
+```
+
+Now we need to set the roundcube site to be enabled in nginx and bounce services.
+
+```
+cd /etc/nginx/sites-enabled/
+rm -f default
+ln -s /etc/nginx/sites-available/roundcube roundcube
+service php-fpm restart
+service nginx restart
+```
+
+Finally you need to run the installer script for roundcube and follow along with the instructions.  Open a web browser and point it to http://yourdomain/installer/  When you have completed it, remember to remove the installer folder for security.
+
+```
+cd /usr/share/nginx/www/roundcube
+rm -rf installer/
+```
+
+
+Final Server Hardening and Firewall adjustments
+----------------------
+
+There are just a few final steps to take that are good security ideas.  There's certainly a lot more that can be done to secure the server with things like grsecurity+selinux kernels, etc. but for the scope of this tutorial with these final steps you should be in pretty good shape.  I may add additional tutorials later that go even further in depth from a server base matching the final configuration here.
+
+Make /etc/passwd, /etc/shadow, and /etc/group immutable (non-modifiable)
+```
+chattr +i /etc/passwd
+chattr +i /etc/shadow
+chattr +i /etc/group
+```
+
+Clear your MySQL history
+```
+cd ~
+cat /dev/null > .mysql_history
+```
+
+Allow access to your mailserver and webserver through the firewall
+```
+ufw allow http
+ufw allow https
+ufw allow imaps
+ufw allow smtp
+ufw allow submission
+ufw allow smtps
+```
+
+When you're finished you can type 'ufw status verbose' and you should see the following:
+
+```
+Status: active
+Logging: on (low)
+Default: deny (incoming), allow (outgoing)
+New profiles: skip
+
+To                         Action      From
+--                         ------      ----
+22                         ALLOW IN    Anywhere
+Anywhere                   ALLOW IN    $yourIP
+993                        ALLOW IN    Anywhere
+465/tcp                    ALLOW IN    Anywhere
+25/tcp                     ALLOW IN    Anywhere
+443                        ALLOW IN    Anywhere
+80                         ALLOW IN    Anywhere
+587                        ALLOW IN    Anywhere
+22                         ALLOW IN    Anywhere (v6)
+993                        ALLOW IN    Anywhere (v6)
+465/tcp                    ALLOW IN    Anywhere (v6)
+25/tcp                     ALLOW IN    Anywhere (v6)
+443                        ALLOW IN    Anywhere (v6)
+80                         ALLOW IN    Anywhere (v6)
+587                        ALLOW IN    Anywhere (v6)
+```
+
+FIN
+---
+
+Congratulations, you've configured a working and secure email server.  Now you should verify it works by setting up your client to use IMAPS (port 993) and SMTP w/ STARTTLS (port 587) on your mailserver.  Send an email to your existing email account, then reply to it.  Verify you can send successfully and that you can recieve the reply. Verify you can login to webmail using your email username and password.  If everything checks out, you are good to go.
+
