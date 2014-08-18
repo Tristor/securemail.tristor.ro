@@ -66,7 +66,7 @@ My goal with this website is to save you the time and trouble of researching all
 Feedback & Contacting Me
 ------------------------
 
-Last but not least, please feel free to provide me any feedback you may have about this site or ask any questions if you encounter a problem.  I cannot promise that I will be able to answer quickly, but I will attempt to help anybody that encounters problems when following my guide.  Each page on this website is Disqus enabled, and if you wish to email me you can do so at tristor@tristor.ro  I greatly prefer email I receive to be signed and/or encrypted, so please make use of my [OpenPGP key](http://keypolicy.tristor.ro/key/tyler.duzan.asc).
+Last but not least, please feel free to provide me any feedback you may have about this site or ask any questions if you encounter a problem.  I cannot promise that I will be able to answer quickly, but I will attempt to help anybody that encounters problems when following my guide.  Each page on this website is Disqus enabled, and if you wish to email me you can do so at tristor@tristor.ro  I greatly prefer email I receive to be signed and/or encrypted, so please make use of my [OpenPGP key](http://keypolicy.tristor.ro/key/tristor.asc).
 
 [gimmick:Disqus](tristor)
 
