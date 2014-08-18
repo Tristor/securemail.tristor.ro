@@ -480,7 +480,7 @@ cp /etc/postfix/main.cf /etc/postfix/main.cf.orig
 cp /etc/postfix/master.cf /etc/postfix/master.cf.orig
 ```
 
-Then you want to create your configuration to look like the following.  Note, you will need to provide a self-signed certificate if you don't want to purchase a legitimate trusted certificate.  I purchased my RapidSSL through [Namecheap](http://www.namecheap.com/?aff=72423) for $38 for 4 years which was one of the best prices I found.  If you choose to purchase a certificate, you will need to START with a self-signed, because a verification email to postmaster@yourdomain.com is sent as part of the domain validation process.  
+Then you want to create your configuration to look like the following.  Note, you will need to provide a self-signed certificate if you don't want to purchase a legitimate trusted certificate.  I purchased my RapidSSL through [Namecheap](http://www.namecheap.com/?aff=72423) for $38 for 4 years which was one of the best prices I found.  If you choose to purchase a certificate, you will need to START with a self-signed, because a verification email to postmaster@yourdomain.com is sent as part of the domain validation process. Modify /etc/postfix/main.cf to look like the following:
 
 ```
 # See /usr/share/postfix/main.cf.dist for a commented, more complete version
@@ -646,7 +646,7 @@ Now we will change your second Postfix config file before we move on.
 
 ### Postfix Master Config File
 
-You've already backed this file up, so just make it look like below essentially.
+You've already backed this file up, so just make it look like below essentially. Edit /etc/postfix/master.cf to look like the following:
 
 ```
 #
