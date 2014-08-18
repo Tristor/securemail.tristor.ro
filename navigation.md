@@ -7,5 +7,5 @@
 [OpenPGP](gnupg.md)
 [Keysigning](http://keypolicy.tristor.ro/)
 
-[gimmick:theme (inverse: false)](bootstrap)
+[gimmick:theme (inverse: false)](readable)
 [gimmick:ThemeChooser](Change theme)
