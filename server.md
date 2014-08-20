@@ -1359,6 +1359,8 @@ WebMail Configuration
 
 The last service we need to setup is going to be nginx, php-fpm, and a web application called 'roundcube'.  We will be installing nginx from wheezy-backports, because it is a much newer version which enables some additional security functionality called OCSP stapling.
 
+NOTE: Your libicu version may be different. If so, just issue an 'aptitude search libicu' and see what version you should be installing
+
 ```bash
 apt-get -t wheezy-backports install -y nginx
 apt-get install -y php5-fpm php5-mysql php-pear php5-mcrypt php5-dev aspell libicu44 libicu-dev
