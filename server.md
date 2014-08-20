@@ -883,11 +883,13 @@ NOTE: Replace the entire contents of your 10-master.conf file with the following
 service imap-login {
   inet_listener imap {
     port = 0
+  }
 }
 
 service pop3-login {
   inet_listener pop3 {
     port = 0
+  }
 }
 
 service lmtp {
