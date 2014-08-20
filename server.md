@@ -471,11 +471,11 @@ The hash it returns is split into two parts, one is the hash type declaration, a
 {SHA512-CRYPT}$6$xlPWvhVDQ0p.LUAL$FVsyDqUQVeRh/YNx5DEvoHQ90c7BX4PfcY8V3lYaxqJ0BjRyx/EQ8z/QE2eScaEQ7jG7fFz9dshOpKV0y/qbZ.
 ```
 
-Create your first email account and alias
+Create your first email account and alias, after entering mysql prompt again
 ```sql
 INSERT INTO mailserver.virtual_users (id, domain_id, password, email) VALUES (1, 1, "$passwordhash", "$youremailaddress");
 INSERT INTO mailserver.virtual_aliases (id, domain_id, source, destination) VALUES (1, 1, "postmaster@$mailname", "$youremailaddress");
-
+quit;
 ```
 
 We'll finally ready to begin working on configuring Postfix.
