@@ -68,7 +68,7 @@ Initial Server Configuration
 
 Run the following:
 
-```
+```bash
 apt-get update
 apt-get upgrade -y
 ```
@@ -81,7 +81,7 @@ Note: If you're an advanced user and want additional security, you should consid
 
 We will install the latest kernel from backports
 
-```
+```bash
 apt-get -t wheezy-backports install linux-image-amd64
 ```
 
@@ -91,7 +91,7 @@ I advise using a password manager in general.  If you use one, use the random pa
 
 Replace $username with whatever you want your normal user account to be.  Note, it's being added to the sudoers group.
 
-```
+```bash
 passwd
 useradd -m -U -G sudo -s /bin/bash $username
 ```
@@ -108,7 +108,7 @@ When enabling PKCS#8, this ONLY for the private key.  Leave the public key uncha
 
 Run the following from your local client system:
 
-```
+```bash
 ssh-keygen -t rsa -b 4096 
 mv ~/.ssh/id_myname ~/.ssh/id_myname.old
 umask 0077
@@ -126,13 +126,13 @@ Attention: BEFORE making changes to disable password authentication ensure you'v
 
 Run the following from your client system:
 
-```
+```bash
 scp ~/.ssh/id_myname.pub $username@example.com:~
 ```
 
 Run the following from your server as your user:
 
-```
+```bash
 mkdir .ssh
 chmod 700 .ssh
 cd .ssh
@@ -167,7 +167,7 @@ MACs hmac-sha2-512
 
 Save the file and then run the following to restart the OpenSSH service:
 
-```
+```bash
 service ssh restart
 ```
 
@@ -195,7 +195,7 @@ Save it.
 
 Install DenyHosts
 
-```
+```bash
 apt-get install -y denyhosts
 ```
 
@@ -220,13 +220,13 @@ Note: If you are comfortable doing this with IPTables directly, go for it.
 
 Install ufw
 
-```
+```bash
 apt-get install -y ufw
 ```
 
 Configure ufw for SSH
 
-```
+```bash
 ufw default deny incoming
 ufw allow ssh
 ufw allow from $yourip
@@ -244,7 +244,7 @@ Hint: If you wish to be more secure, limit access to the SSH ports to only your 
 We'll enable automatic security updates using unattended-upgrades and some APT settings.
 
 
-```
+```bash
 apt-get install -y unattended-upgrades
 ```
 
@@ -277,7 +277,7 @@ Unattended-Upgrade::Origins-Pattern {
 Initial DNS Configuration
 -------------------------
 
-Before we continue any further, please ensure that you have an A, AAAA, MX, and SPF record created.  Additionally if possible, you need to set your PTR to match your A record. This will make the rest of this easier.
+Attention: Before we continue any further, please ensure that you have an A, AAAA, MX, and SPF record created.  Additionally if possible, you need to set your PTR to match your A record. This will make the rest of this easier.
 
 As an example, here is the DNS configuration for the email server on this domain, mail.tristor.ro.
 
@@ -297,7 +297,7 @@ Configure EncFS
 
 Now we get to configuring our encrypted mail store.  This will be used for storing all of the mail data, as well as cache data for the various services in our service chain.  Each time your system is rebooted you'll need to login to your server and run the encfs command to decrypted and remount the mail store.  Afterwards you'll need to restart postfix, dovecot, opendkim, postfwd, and postgrey since they expect to be able to read and write data from the mail store.
 
-Each time you do this you'll need to enter your password, so whatever you choose ensure you don't forget it.  This too can be stored in your password manager.
+Note: Each time you do this you'll need to enter your password, so whatever you choose ensure you don't forget it.  This too can be stored in your password manager.
 
 A simple shell script for your root user that can do this is as follows:
 
@@ -319,7 +319,7 @@ service dovecot restart
 
 Alright, here goes:
 
-```
+```bash
 apt-get install -y encfs
 mkdir -pv /mail/{encrypted-mail,decrypted-mail}
 gpasswd -a mail fuse
@@ -372,7 +372,7 @@ Postfix
 Let's install Postfix, Dovecot, and MySQL to start.  You're going to get prompted for some things by dpkg-configure when you install Postfix.  You want to choose "Internet Site" and then set your "mail name" to match the domain that should follow the @ sign in emails and matches your MX record.  So in my case, I chose "tristor.ro".
 
 
-```
+```bash
 apt-get install -y postfix postfix-mysql dovecot-core dovecot-imapd dovecot-mysql mysql-server dovecot-lmtpd
 ```
 
@@ -390,7 +390,7 @@ The first step is to run mysql_secure_installation which will fix a number of ba
 * Remove the test database
 * Reloads the privilege tables to make changes take effect immediately
 
-```
+```bash
 mysql_secure_installation
 ```
 
@@ -406,14 +406,15 @@ skip-show-database
 ```
 This will remove the ability for the "show databases;" command to be used at the MySQL prompt and will remove the ability to use LOCAL INFILE commands, which prevents an SQLI attack from reading your /etc/passwd et al
 
-Later in this tutorial when we do some final hardening we'll also remove your MySQL history file, since it contains schema information and passwords from commands which we'll be executing.  
+Hint: Later in this tutorial when we do some final hardening we'll also remove your MySQL history file, since it contains schema information and passwords from commands which we'll be executing.  
 
 ### MySQL DB/Table Creation
 
 When prompted for your MySQL 'root' password you will need to enter it.  We will be creating a database and series of tables and a user that your other services will connect to MySQL with.
 
-Create DB and User.  Please use a UNIQUE password for 'mailuser', not the same as used for 'root'.  This will be substituted in your query for $mailuserpass as below.
+Attention:   Please use a UNIQUE password for 'mailuser', not the same as used for 'root'.  This will be substituted in your query for $mailuserpass as below.
 
+Create DB and User.
 ```
 mysqladmin -p create mailserver
 mysql -p mailserver
@@ -421,14 +422,14 @@ mysql> GRANT SELECT ON mailserver.* TO 'mailuser'@'127.0.0.1' IDENTIFIED BY '$ma
 FLUSH PRIVILEGES;
 ```
 
-You'll need to remember what the "mail name" that was set for Postfix configuration during installation was.  This will be your base virtual domain, which will replace the variable $mailname in the query below.
+Note: You'll need to remember what the "mail name" that was set for Postfix configuration during installation was.  This will be your base virtual domain, which will replace the variable $mailname in the query below.
 
 Now we can create all the tables and the primary virtual domain
 
 ```sql
 CREATE TABLE virtual_domains (
   id INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
-  name VARCHAR(50) NOT NULL,
+  name VARCHAR(50) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 CREATE TABLE virtual_users (
   id INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -463,7 +464,7 @@ The hash it returns is split into two parts, one is the hash type declaration, a
 ```
 
 Create your first email account and alias
-```
+```sql
 INSERT INTO mailserver.virtual_users (id, domain_id, password, email) VALUES (1, 1, "$passwordhash", "$youremailaddress");
 INSERT INTO mailserver.virtual_aliases (id, domain_id, source, destination) VALUES (1, 1, "postmaster@$mailname", "$youremailaddress");
 
@@ -475,13 +476,16 @@ We'll finally ready to begin working on configuring Postfix.
 
 First let's backup your existing Postfix configuration
 
-```
+```bash
 cp /etc/postfix/main.cf /etc/postfix/main.cf.orig
 cp /etc/postfix/master.cf /etc/postfix/master.cf.orig
 ```
 
-Then you want to create your configuration to look like the following.  Note, you will need to provide a self-signed certificate if you don't want to purchase a legitimate trusted certificate.  I purchased my RapidSSL through [Namecheap](http://www.namecheap.com/?aff=72423) for $38 for 4 years which was one of the best prices I found.  If you choose to purchase a certificate, you will need to START with a self-signed, because a verification email to postmaster@yourdomain.com is sent as part of the domain validation process. Modify /etc/postfix/main.cf to look like the following:
+Note: you will need to provide a self-signed certificate if you don't want to purchase a legitimate trusted certificate.  I purchased my RapidSSL through [Namecheap](http://www.namecheap.com/?aff=72423) for $38 for 4 years which was one of the best prices I found.  
 
+Attention: If you choose to purchase a certificate, you will need to START with a self-signed, because a verification email to postmaster@yourdomain.com is sent as part of the domain validation process.  
+
+Edit your /etc/postfix/main.cf configuration to look like the following. 
 ```
 # See /usr/share/postfix/main.cf.dist for a commented, more complete version
 
@@ -612,7 +616,7 @@ dbname = mailserver
 query = SELECT 1 FROM virtual_domains WHERE name='%s'
 ```
 
-/etc/postfix/mysql-virtual-mailbox-domains.cf
+/etc/postfix/mysql-virtual-mailbox-maps.cf
 ```
 user = mailuser
 password = $mailuserpass
@@ -633,7 +637,7 @@ query = SELECT destination FROM virtual_aliases WHERE source='%s'
 
 At this point you should restart Postfix and verify that your virtual mapping works.
 
-```
+```bash
 service postfix restart
 postmap -q $mailname mysql:/etc/postfix/mysql-virtual-mailbox-domains.cf
 postmap -q $youremailaddress mysql:/etc/postfix/mysql-virtual-mailbox-maps.cf
@@ -646,7 +650,8 @@ Now we will change your second Postfix config file before we move on.
 
 ### Postfix Master Config File
 
-You've already backed this file up, so just make it look like below essentially. Edit /etc/postfix/master.cf to look like the following:
+Now we edit /etc/postfix/master.cf. You've already backed this file up, so just make it look like below essentially.
+
 
 ```
 #
@@ -778,7 +783,8 @@ Dovecot
 -------
 
 First let's backup your existing configuration files
-```
+
+```bash
 cp /etc/dovecot/dovecot.conf /etc/dovecot/dovecot.conf.orig
 cp /etc/dovecot/conf.d/10-mail.conf /etc/dovecot/conf.d/10-mail.conf.orig
 cp /etc/dovecot/conf.d/10-auth.conf /etc/dovecot/conf.d/10-auth.conf.orig
@@ -805,7 +811,7 @@ first_valid_uid = 0
 
 Now we edit the auth configuration in /etc/dovecot/conf.d/10-auth.conf
 
-In this file we'll be commenting out with a '#' one line, and uncommenting another to use MySQL rather than local UNIX accounts for auth down near the bottom in addition to changing the other two parameters.
+Note: In this file we'll be commenting out with a '#' one line, and uncommenting another to use MySQL rather than local UNIX accounts for auth down near the bottom in addition to changing the other two parameters.
 
 ```
 disable_plaintext_auth = yes
@@ -827,7 +833,9 @@ userdb {
 }
 ```
 
-And finally now we configure Dovecot to connect to the proper database in /etc/dovecot/dovecot-sql.conf.ext  You will need to provide the password for your 'mailuser' DB user where $mailuserpass is.
+And finally now we configure Dovecot to connect to the proper database in /etc/dovecot/dovecot-sql.conf.ext  
+
+Note: You will need to provide the password for your 'mailuser' DB user where $mailuserpass is.
 
 ```
 driver = mysql
@@ -838,7 +846,7 @@ password_query = SELECT email as user, password FROM virtual_users WHERE email='
 
 Now we need to set some permissions on the Dovecot configuration so the mail group can work within it.
 
-```
+```bash
 chown -R mail:dovecot /etc/dovecot
 chmod -R o-rwx /etc/dovecot
 ```
@@ -959,7 +967,11 @@ ssl_key = </etc/ssl/private/tristor.ro.key
 #ssl_parameters_regenerate = 168
 
 # SSL protocols to use
-ssl_protocols = !SSLv2 !SSLv3 TLSv1 TLSv1.1 TLSv1.2
+ssl_protocols = !SSLv2 !SSLv3 TLSv1 
+#Debian 7 and Debian 8 both use Dovecot 2.1.7 + patches
+#New TLS modes are only supported in Dovecot 2.2.
+#If you're using Dovecot 2.2, please ensure to enable the below as well.'
+#TLSv1.1 TLSv1.2
 
 # SSL ciphers to use
 #ssl_cipher_list = ALL:!LOW:!SSLv2:!EXP:!aNULL
@@ -970,12 +982,16 @@ ssl_cipher_list = ECDH+aRSA+AES256:ECDH+aRSA+AES128:AES256-SHA:DES-CBC3-SHA
 ```
 
 
-At this point email should basically work, however since we did some pre-configuration it won't.  We still need to configure PigeonHole, postfwd, postgrey, OpenDKIM, and dspam.  Before we move on to that, though, here's a quick primer on how to generate a self-signed certificate and key for use with Postfix and Dovecot until you can get a real cert.
+Attention: At this point email should basically work, however since we did some pre-configuration it won't.  We still need to configure PigeonHole, postfwd, postgrey, OpenDKIM, and dspam.  
 
-```
+Before we move on to that, though, here's a quick primer on how to generate a self-signed certificate and key for use with Postfix and Dovecot until you can get a real cert.
+
+```bash
 openssl req -new -x509 -days 1000 -nodes -out "/etc/ssl/certs/dovecot.pem" -keyout "/etc/ssl/private/dovecot.pem"
 ```
-Anywhere you've seen me specify my certificates you can instead specify these so that you can get TLS working long enough to receive the DV validation email.  Again, I highly recommend you use a trusted cert, even if it's just for your personal use, because it will condition you to be alert around seeing certificate warnings, rather than accepting them.  Less than $40 for 4 years at [Namecheap](http://www.namecheap.com/?aff=72423) is pretty cheap.
+Hint: Anywhere you've seen me specify my certificates you can instead specify these so that you can get TLS working long enough to receive the DV validation email.  
+
+Attention: Again, I highly recommend you use a trusted cert, even if it's just for your personal use, because it will condition you to be alert around seeing certificate warnings, rather than accepting them.  Less than $40 for 4 years at [Namecheap](http://www.namecheap.com/?aff=72423) is pretty cheap.
 
 
 Anti-Spam Configuration
@@ -983,13 +999,15 @@ Anti-Spam Configuration
 
 ### OpenDKIM
 
-This is going to be relatively quick and painless, however you'll need to make some DNS entries as I alluded to near the beginning of this document.  Fill in $mailname with the 'mail name' you used in Postfix and previously.
+This is going to be relatively quick and painless, however you'll need to make some DNS entries as I alluded to near the beginning of this document.  
 
-```
+Note: Fill in $mailname with the 'mail name' you used in Postfix and previously.
+
+```bash
 apt-get install -y opendkim opendkim-tools
 mkdir -pv /etc/opendkim/
 chown -Rv opendkim:opendkim /etc/opendkim
-chmod go-rwx /etc/opendkim/*
+chmod go-rwx -R /etc/opendkim
 cd /etc/opendkim/
 opendkim-genkey -r -h rsa-sha256 -d $mailname -s mail
 mv -v mail.private mail
@@ -1043,9 +1061,9 @@ UMask                   022
 UserID                  opendkim:opendkim
 ```
 
-Since making these files may have caused them to be owned by root instead of the opendkim user, we need to change their ownership again to be sure (this resolves an issue with 4.7.1 errors I saw) although we want to ensure the opendkim user doesn't have write permissions to the private key.
+Note: Since making these files may have caused them to be owned by root instead of the opendkim user, we need to change their ownership again to be sure (this resolves an issue with 4.7.1 errors I saw) although we want to ensure the opendkim user doesn't have write permissions to the private key.
 
-```
+```bash
 chown -Rv opendkim:opendkim /etc/opendkim
 chown root:opendkim /etc/opendkim/mail
 chmod g+r /etc/opendkim/mail
@@ -1053,7 +1071,7 @@ chmod g+r /etc/opendkim/mail
 
 Postfix was pre-configured to work with OpenDKIM so we just need to bounce the services and move on.
 
-```
+```bash
 service opendkim restart
 service postfix restart
 ```
@@ -1064,14 +1082,14 @@ Your SPF configuration should have already been completed previously, but just a
 tristor.ro.		300	IN	TXT	"v=spf1 mx ip4:23.253.125.249/32 -all"
 ```
 
-You should also be setting your Reverse DNS information for both IPv4 and IPv6 on your server.  This is known as the PTR or pointer record.  As an example, this is done from the server details page in the Cloud Control Panel if you're using a [Rackspace Cloud Server](http://www.rackspace.com/cloud/).  Otherwise you should check the documentation from your hosting service or contact their Support services for assistance.
+Attention: You should also be setting your Reverse DNS information for both IPv4 and IPv6 on your server.  This is known as the PTR or pointer record.  As an example, this is done from the server details page in the Cloud Control Panel if you're using a [Rackspace Cloud Server](http://www.rackspace.com/cloud/).  Otherwise you should check the documentation from your hosting service or contact their Support services for assistance.
 
 
 ### dspam and PigeonHole
 
-You can use any anti-spam service you like, however for my preferences and the purpose of this tutorial we will be using dspam.  Another popular tool is SpamAssasin, however if you use SpamAssasin you will need to make some significant changes to the anti-spam configuration since SpamAssasin replaces the need for postfwd and integrates directly with PigeonHole and Postgrey.  This could be beneficial to you, but I find my configuration more simplistic and equal or better in effectiveness.
+Note: You can use any anti-spam service you like, however for my preferences and the purpose of this tutorial we will be using dspam.  Another popular tool is SpamAssasin, however if you use SpamAssasin you will need to make some significant changes to the anti-spam configuration since SpamAssasin replaces the need for postfwd and integrates directly with PigeonHole and Postgrey.  This could be beneficial to you, but I find my configuration more simplistic and equal or better in effectiveness.
 
-```
+```bash
 apt-get install -y dspam dovecot-antispam postfix-pcre dovecot-sieve
 ```
 
@@ -1100,7 +1118,7 @@ ClientHost /var/run/dspam/dspam.sock
 
 Then create the dspam home directory.
 
-```
+```bash
 mkdir -pv /mail/decrypted-mail/dspam
 chown dspam:dspam /mail/decrypted-mail/dspam
 ```
@@ -1167,7 +1185,7 @@ Then we edit /etc/dovecot/conf.d/90-plugin.conf.  We'll be adding some lines int
 
 Now bounce postfix and dovecot
 
-```
+```bash
 service postfix restart
 service dovecot restart
 ```
@@ -1176,7 +1194,7 @@ service dovecot restart
 
 Alright, so the final anti-spam measure we'll be taking is using hybrid greylisting based off DNSBL scoring.  To accomplish this in a performant manner we'll be configuring BIND9 to act as a local DNS cache as well.
 
-```
+```bash
 apt-get install postgrey postfwd bind9 dnsutils chrony 
 ```
 
@@ -1184,7 +1202,7 @@ First let's configure chrony and BIND
 
 ##### DNS Caching Configuration
 
-chrony's default configuration is correct and it is useful in keeping time correct which is important for many things, among those is DNS caching.  There is no need to adjust it's configuration, but you should be aware that VMs (such as cloud servers) tend to be very bad at keeping accurate time and drift heavily under load.  So chrony is non-optional for a working configuration.
+Attention: chrony's default configuration is correct and it is useful in keeping time correct which is important for many things, among those is DNS caching.  There is no need to adjust it's configuration, but you should be aware that VMs (such as cloud servers) tend to be very bad at keeping accurate time and drift heavily under load.  So chrony is non-optional for a working configuration.
 
 The default BIND configuration has it acting as a caching nameserver already.  So the only action required is configuring it's upstream nameservers.
 
@@ -1211,7 +1229,7 @@ nameserver 127.0.0.1
 
 Now we will use resolvconf to regenerate our /etc/resolv.conf file and verify it works so the file will contain correct information on reboots.
 
-```
+```bash
 resolveconf -a eth0.inet
 resolveconf -u
 ```
@@ -1226,7 +1244,7 @@ nameserver 127.0.0.1
 
 Now restart BIND
 
-```
+```bash
 service bind9 restart
 ```
 
@@ -1236,7 +1254,9 @@ Let's verify that the caching function is working.  Pick a domain to use that yo
 time dig cnn.com
 ```
 
-You should see the first query take some amount of time, followed by the second query taking almost no time (less than 5ms).  This is the performance potential of DNS caching in a nutshell.  By caching the results of DNSBLS, it'll be able to process mail much faster.  This works because a DNSBL operates by your server essentially doing a dig at a special URL with the IP and the DNSBL returns a DNS response via normal means.  So your nameserver is able to cache the response for each DNSBL effectively.
+You should see the first query take some amount of time, followed by the second query taking almost no time (less than 5ms).  This is the performance potential of DNS caching in a nutshell.  
+
+Hint: By caching the results of DNSBLS, it'll be able to process mail much faster.  This works because a DNSBL operates by your server essentially doing a dig at a special URL with the IP and the DNSBL returns a DNS response via normal means.  So your nameserver is able to cache the response for each DNSBL effectively.
 
 ##### Postfwd and Postgrey configuration
 
@@ -1275,13 +1295,15 @@ id=GREYLIST ; action=ask(127.0.0.1:10023) ; HIT_dnsbls>=1
 This configuration will check the DNSBLs we've included and if an address is listed on 3 or more, that mail is rejected.  If it's on less than 3 but on at least 1, it'll get greylisted.  If it's on none, it passes through and avoids greylisting greatly increasing mail performance while still getting the advantages of greylisting for spam protection.
 
 Now bounce your services
-```
+```bash 
 service postfwd restart
 service postgrey restart
 service postfix restart
 ```
 
-At this point you should be able to send and recieve mail via an IMAP/SMTP client such as Thunderbird.  We will be configuring the webmail service next, which will give you secure web-based email on your server.  I will cover the email client configuration in another tutorial accessible from the menu at the top.
+At this point you should be able to send and recieve mail via an IMAP/SMTP client such as Thunderbird.  We will be configuring the webmail service next, which will give you secure web-based email on your server.  
+
+Note: I will cover the email client configuration in another tutorial accessible from the menu at the top.
 
 
 WebMail Configuration
@@ -1289,7 +1311,7 @@ WebMail Configuration
 
 The last service we need to setup is going to be nginx, php-fpm, and a web application called 'roundcube'.  We will be installing nginx from wheezy-backports, because it is a much newer version which enables some additional security functionality called OCSP stapling.
 
-```
+```bash
 apt-get -t wheezy-backports install -y nginx
 apt-get install -y php5-fpm php5-mysql php-pear php5-mcrypt php5-dev aspell libicu44 libicu-dev
 pecl install intl
@@ -1297,7 +1319,7 @@ pecl install intl
 
 We're going to put our configuration for nginx into a file named /etc/nginx/sites-available/roundcube
 
-You'll need to ensure that you change the server_name parameter to match your appropriate URL and also set your SSL certificate and key to your self-signed or the appropriate one provided by your CA.
+Note: You'll need to ensure that you change the server_name parameter to match your appropriate URL and also set your SSL certificate and key to your self-signed or the appropriate one provided by your CA.
 
 ```
 #rate limit requests to prevent bruteforce
@@ -1380,7 +1402,7 @@ Add the following inside the http{} block in /etc/nginx/nginx.conf
 
 Now let's get roundcube downloaded and it's files put into the right place
 
-```
+```bash
 cd ~
 wget http://sourceforge.net/projects/roundcubemail/files/roundcubemail/1.0.2/roundcubemail-1.0.2.tar.gz/download
 mv download roundcubemail-1.0.2.tar.gz
@@ -1412,14 +1434,15 @@ listen.group = www-data
 
 Create your DHParam for nginx:
 
-```
+```bash
 openssl dhparam -rand - 2048 >> /etc/ssl/dhparam.pem
 ```
 
-Alright, so now you need to connect to your MySQL server and create a database and user for roundcube.  Please change $password to a new randomly generated password that you've stored in your password manager.  This will be used during configuration of roundcube.
+Alright, so now you need to connect to your MySQL server and create a database and user for roundcube.  You can connect by using 'mysql -p'.
 
-```
-#mysql -p
+Note: Please change $password to a new randomly generated password that you've stored in your password manager.  This will be used during configuration of roundcube.
+
+```sql
 CREATE DATABASE roundcubemail;
 GRANT ALL PRIVILEGES ON roundcubemail.* TO username@localhost IDENTIFIED BY '$password';
 FLUSH PRIVILEGES;
@@ -1427,14 +1450,14 @@ FLUSH PRIVILEGES;
 
 Now we need to create the tables and base data for roundcubemail.  Do this by running the following command
 
-```
+```bash
 cd /usr/share/nginx/www/roundcube
 mysql -p roundcubemail < SQL/mysql.initial.sql
 ```
 
 Now fix some directory permissions for roundcube
 
-```
+```bash
 cd /usr/share/nginx/www/roundcube
 chmod 664 temp/
 chmod 664 logs/
@@ -1443,7 +1466,7 @@ chown root:www-data logs/
 
 Now we need to set the roundcube site to be enabled in nginx and bounce services.
 
-```
+```bash
 cd /etc/nginx/sites-enabled/
 rm -f default
 ln -s /etc/nginx/sites-available/roundcube roundcube
@@ -1453,7 +1476,7 @@ service nginx restart
 
 Finally you need to run the installer script for roundcube and follow along with the instructions.  Open a web browser and point it to http://yourdomain/installer/  When you have completed it, remember to remove the installer folder for security.
 
-```
+```bash
 cd /usr/share/nginx/www/roundcube
 rm -rf installer/
 ```
@@ -1462,23 +1485,23 @@ rm -rf installer/
 Final Server Hardening and Firewall adjustments
 ----------------------
 
-There are just a few final steps to take that are good security ideas.  There's certainly a lot more that can be done to secure the server with things like grsecurity+selinux kernels, etc. but for the scope of this tutorial with these final steps you should be in pretty good shape.  I may add additional tutorials later that go even further in depth from a server base matching the final configuration here.
+Note: There are just a few final steps to take that are good security ideas.  There's certainly a lot more that can be done to secure the server with things like grsecurity+selinux kernels, etc. but for the scope of this tutorial with these final steps you should be in pretty good shape.  I may add additional tutorials later that go even further in depth from a server base matching the final configuration here.
 
 Make /etc/passwd, /etc/shadow, and /etc/group immutable (non-modifiable)
-```
+```bash
 chattr +i /etc/passwd
 chattr +i /etc/shadow
 chattr +i /etc/group
 ```
 
 Clear your MySQL history
-```
+```bash
 cd ~
 cat /dev/null > .mysql_history
 ```
 
 Allow access to your mailserver and webserver through the firewall
-```
+```bash
 ufw allow http
 ufw allow https
 ufw allow imaps
@@ -1517,7 +1540,9 @@ Anywhere                   ALLOW IN    $yourIP
 FIN
 ---
 
-Congratulations, you've configured a working and secure email server.  Now you should verify it works by setting up your client to use IMAPS (port 993) and SMTP w/ STARTTLS (port 587) on your mailserver.  Send an email to your existing email account, then reply to it.  Verify you can send successfully and that you can recieve the reply. Verify you can login to webmail using your email username and password.  If everything checks out, you are good to go.
+Congratulations, you've configured a working and secure email server.  
+
+Attention: Now you should verify it works by setting up your client to use IMAPS (port 993) and SMTP w/ STARTTLS (port 587) on your mailserver.  Send an email to your existing email account, then reply to it.  Verify you can send successfully and that you can recieve the reply. Verify you can login to webmail using your email username and password.  If everything checks out, you are good to go.
 
 
 Comments
