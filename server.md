@@ -861,17 +861,34 @@ chmod -R o-rwx /etc/dovecot
 
 Finally we're going to do a config hack in Dovecot that forces the use of secure sockets by setting the listener ports to 0 and configure our LMTP service by editing /etc/dovecot/conf.d/10-master.conf
 
+NOTE: Replace the entire contents of your 10-master.conf file with the following
+
 ```
+#default_process_limit = 100
+#default_client_limit = 1000
+
+# Default VSZ (virtual memory size) limit for service processes. This is mainly
+# intended to catch and kill processes that leak memory before they eat up
+# everything.
+#default_vsz_limit = 256M
+
+# Login user is internally used by login processes. This is the most untrusted
+# user in Dovecot system. It shouldn't have access to anything at all.
+#default_login_user = dovenull
+
+# Internal user is used by unprivileged processes. It should be separate from
+# login user, so that login processes can't disturb other processes.
+#default_internal_user = dovecot
+
 service imap-login {
   inet_listener imap {
     port = 0
-  }
-  
+}
+
 service pop3-login {
   inet_listener pop3 {
     port = 0
-  }
-
+}
 
 service lmtp {
   unix_listener /var/spool/postfix/private/dovecot-lmtp {
@@ -887,11 +904,21 @@ service lmtp {
   #}
   user=mail
 }
-```
 
-One last edit to that same file is to replace the entire service auth and service auth-worker sections with what I provide below:
+service imap {
+  # Most of the memory goes to mmap()ing files. You may need to increase this
+  # limit if you have huge mailboxes.
+  #vsz_limit = $default_vsz_limit
 
-```
+  # Max. number of IMAP processes (connections)
+  #process_limit = 1024
+}
+
+service pop3 {
+  # Max. number of POP3 processes (connections)
+  #process_limit = 1024
+}
+
 service auth {
   # auth_socket_path points to this userdb socket by default. It's typically
   # used by dovecot-lda, doveadm, possibly imap process, etc. Its default
@@ -921,6 +948,17 @@ service auth-worker {
   # $default_internal_user.
   user = mail
 }
+
+service dict {
+  # If dict proxy is used, mail processes should have access to its socket.
+  # For example: mode=0660, group=vmail and global mail_access_groups=vmail
+  unix_listener dict {
+    #mode = 0600
+    #user = 
+    #group = 
+  }
+}
+
 ```
 
 Next we're going to configure Dovecot logging to show what cipher suite is being used when it logs by editing /etc/dovecot/conf.d/10-logging.conf
