@@ -79,10 +79,17 @@ apt-get upgrade -y
 Note: If you're an advanced user and want additional security, you should considering [installing a grsecurity](https://en.wikibooks.org/wiki/Grsecurity/Obtaining_grsecurity) enabled kernel.  This is a pretty laborious process, although on some platforms can be simplified by making use of [Debian Mempo](http://deb.mempo.org).  
 
 
-We will install the latest kernel from backports
+We will install the latest kernel from backports.
 
 ```bash
 apt-get -t wheezy-backports install linux-image-amd64
+```
+
+If you find you need to add backports to your sources, issue the following command before repeating the above:
+
+```bash
+echo "deb http://http.debian.net/debian wheezy-backports main" >> /etc/apt/sources.list.d/backports.list
+apt-get update
 ```
 
 ### Change Your Root Password and Create a User
