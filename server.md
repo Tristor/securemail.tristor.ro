@@ -255,7 +255,7 @@ We'll enable automatic security updates using unattended-upgrades and some APT s
 apt-get install -y unattended-upgrades
 ```
 
-Ensure /etc/apt/apt.conf.d/10periodic has the following:
+Ensure /etc/apt/apt.conf.d/10periodic has the following (you may need to create this):
 
 ```
 APT::Periodic::Update-Package-Lists "1";
