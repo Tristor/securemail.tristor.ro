@@ -643,7 +643,7 @@ query = SELECT destination FROM virtual_aliases WHERE source='%s'
 ```
 
 
-At this point you should restart Postfix and verify that your virtual mapping works.
+At this point you should restart Postfix and verify that your virtual mapping works. You will receive a few warnings from areas of postfix that we haven't yet used.
 
 ```bash
 service postfix restart
