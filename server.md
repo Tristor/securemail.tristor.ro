@@ -967,7 +967,11 @@ ssl_key = </etc/ssl/private/tristor.ro.key
 #ssl_parameters_regenerate = 168
 
 # SSL protocols to use
-ssl_protocols = !SSLv2 !SSLv3 TLSv1 TLSv1.1 TLSv1.2
+ssl_protocols = !SSLv2 !SSLv3 TLSv1 
+#Debian 7 and Debian 8 both use Dovecot 2.1.7 + patches
+#New TLS modes are only supported in Dovecot 2.2.
+#If you're using Dovecot 2.2, please ensure to enable the below as well.'
+#TLSv1.1 TLSv1.2
 
 # SSL ciphers to use
 #ssl_cipher_list = ALL:!LOW:!SSLv2:!EXP:!aNULL
@@ -1003,7 +1007,7 @@ Note: Fill in $mailname with the 'mail name' you used in Postfix and previously.
 apt-get install -y opendkim opendkim-tools
 mkdir -pv /etc/opendkim/
 chown -Rv opendkim:opendkim /etc/opendkim
-chmod go-rwx /etc/opendkim/*
+chmod go-rwx -R /etc/opendkim
 cd /etc/opendkim/
 opendkim-genkey -r -h rsa-sha256 -d $mailname -s mail
 mv -v mail.private mail
