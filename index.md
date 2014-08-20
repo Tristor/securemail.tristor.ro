@@ -1,7 +1,7 @@
 #Securing Your Email
 
 
-In the wake of all the news surrounding the NSA's illegal spying activities on US citizens and people around world and the reality that almost all free email systems propose the tradeoff where you turn over information about the services you subscribe to and the social networks and relationships you keep for their service, it's important that people take control of their communications channels and work towards securing them.  This website attempts to be a relatively comprehensive tutorial on configuring a suite of tools, both server and client, to make this possible.
+In the wake of all the news surrounding the NSA's illegal spying activities on US citizens and people around the world and the reality that almost all free email systems propose the tradeoff where you turn over information about the services you subscribe to and the social networks and relationships you keep for their service, it's important that people take control of their communications channels and work towards securing them.  This website attempts to be a relatively comprehensive tutorial on configuring a suite of tools, both server and client, to make this possible.
 
 Note: The material on this site is presented in as straightforward a manner as possible, but assumes that you are capable of doing research on anything you do not understand as you follow the tutorials.  Basic Linux/UNIX administration skills are strongly recommended for following the server portions.
 
