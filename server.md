@@ -1476,7 +1476,7 @@ Add to bottom:
 extension=intl.so
 ```
 
-Then in /etc/php5/fpm/pool.d/www.conf uncomment the following two lines
+Then in /etc/php5/fpm/pool.d/www.conf uncomment the following two lines (if they aren't already)
 ```
 listen.owner = www-data
 listen.group = www-data
