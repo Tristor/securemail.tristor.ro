@@ -1520,7 +1520,7 @@ Now we need to set the roundcube site to be enabled in nginx and bounce services
 cd /etc/nginx/sites-enabled/
 rm -f default
 ln -s /etc/nginx/sites-available/roundcube roundcube
-service php-fpm restart
+service php5-fpm restart
 service nginx restart
 ```
 
