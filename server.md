@@ -454,6 +454,7 @@ CREATE TABLE virtual_aliases (
   FOREIGN KEY (domain_id) REFERENCES virtual_domains(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 INSERT INTO mailserver.virtual_domains (id, name) VALUES (1, "$mailname");
+quit;
 ```
 
 Now we need to make your email address.  Use Dovecot's admin tool to create the password hash.
