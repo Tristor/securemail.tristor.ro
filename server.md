@@ -1456,7 +1456,7 @@ wget http://sourceforge.net/projects/roundcubemail/files/roundcubemail/1.0.2/rou
 mv download roundcubemail-1.0.2.tar.gz
 tar xvf roundcubemail-1.0.2.tar.gz
 mkdir -pv /usr/share/nginx/www/roundcube
-cp ~/roundcubemail-1.0.2/* /usr/share/nginx/www/roundcube/
+cp -R ~/roundcubemail-1.0.2/* /usr/share/nginx/www/roundcube/
 ```
 
 Now that this is out of the way, we need to configure PHP.
