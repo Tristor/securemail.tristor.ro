@@ -841,7 +841,7 @@ userdb {
 }
 ```
 
-And finally now we configure Dovecot to connect to the proper database in /etc/dovecot/dovecot-sql.conf.ext  
+And finally now we configure Dovecot to connect to the proper database in /etc/dovecot/dovecot-sql.conf.ext (you will need to find, uncomment, and then edit or append most of these).
 
 Note: You will need to provide the password for your 'mailuser' DB user where $mailuserpass is.
 
