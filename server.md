@@ -1369,7 +1369,7 @@ pecl install intl
 
 We're going to put our configuration for nginx into a file named /etc/nginx/sites-available/roundcube
 
-Note: You'll need to ensure that you change the server_name parameter to match your appropriate URL and also set your SSL certificate and key to your self-signed or the appropriate one provided by your CA.
+Note: You'll need to ensure that you change the server_name parameter to match your appropriate URL and also set your SSL certificate and key to your self-signed or the appropriate one provided by your CA. You'll need to remove ssl_stapling, ssl_stapling_verify, and ssl_trusted_certificate if you're using a self-signed cert.
 
 ```
 #rate limit requests to prevent bruteforce
