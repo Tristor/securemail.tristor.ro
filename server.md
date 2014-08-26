@@ -1278,8 +1278,8 @@ nameserver 127.0.0.1
 Now we will use resolvconf to regenerate our /etc/resolv.conf file and verify it works so the file will contain correct information on reboots.
 
 ```bash
-resolveconf -a eth0.inet
-resolveconf -u
+resolvconf -a eth0.inet
+resolvconf -u
 ```
 
 Now cat /etc/resolv.conf and it should say
