@@ -1363,7 +1363,7 @@ NOTE: Your libicu version may be different. If so, just issue an 'aptitude searc
 
 ```bash
 apt-get -t wheezy-backports install -y nginx
-apt-get install -y php5-fpm php5-mysql php-pear php5-mcrypt php5-dev aspell libicu44 libicu-dev
+apt-get install -y php5-fpm php5-mysql php-pear php5-mcrypt php5-dev aspell libicu48 libicu-dev
 pecl install intl
 ```
 
