@@ -79,10 +79,17 @@ apt-get upgrade -y
 Note: If you're an advanced user and want additional security, you should considering [installing a grsecurity](https://en.wikibooks.org/wiki/Grsecurity/Obtaining_grsecurity) enabled kernel.  This is a pretty laborious process, although on some platforms can be simplified by making use of [Debian Mempo](http://deb.mempo.org).  
 
 
-We will install the latest kernel from backports
+We will install the latest kernel from backports.
 
 ```bash
 apt-get -t wheezy-backports install linux-image-amd64
+```
+
+If you find you need to add backports to your sources, issue the following command before repeating the above:
+
+```bash
+echo "deb http://http.debian.net/debian wheezy-backports main" >> /etc/apt/sources.list.d/backports.list
+apt-get update
 ```
 
 ### Change Your Root Password and Create a User
@@ -248,7 +255,7 @@ We'll enable automatic security updates using unattended-upgrades and some APT s
 apt-get install -y unattended-upgrades
 ```
 
-Ensure /etc/apt/apt.conf.d/10periodic has the following:
+Ensure /etc/apt/apt.conf.d/10periodic has the following (you may need to create this):
 
 ```
 APT::Periodic::Update-Package-Lists "1";
@@ -447,6 +454,7 @@ CREATE TABLE virtual_aliases (
   FOREIGN KEY (domain_id) REFERENCES virtual_domains(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 INSERT INTO mailserver.virtual_domains (id, name) VALUES (1, "$mailname");
+quit;
 ```
 
 Now we need to make your email address.  Use Dovecot's admin tool to create the password hash.
@@ -463,11 +471,11 @@ The hash it returns is split into two parts, one is the hash type declaration, a
 {SHA512-CRYPT}$6$xlPWvhVDQ0p.LUAL$FVsyDqUQVeRh/YNx5DEvoHQ90c7BX4PfcY8V3lYaxqJ0BjRyx/EQ8z/QE2eScaEQ7jG7fFz9dshOpKV0y/qbZ.
 ```
 
-Create your first email account and alias
+Create your first email account and alias, after entering mysql prompt again
 ```sql
 INSERT INTO mailserver.virtual_users (id, domain_id, password, email) VALUES (1, 1, "$passwordhash", "$youremailaddress");
 INSERT INTO mailserver.virtual_aliases (id, domain_id, source, destination) VALUES (1, 1, "postmaster@$mailname", "$youremailaddress");
-
+quit;
 ```
 
 We'll finally ready to begin working on configuring Postfix.
@@ -635,7 +643,7 @@ query = SELECT destination FROM virtual_aliases WHERE source='%s'
 ```
 
 
-At this point you should restart Postfix and verify that your virtual mapping works.
+At this point you should restart Postfix and verify that your virtual mapping works. You will receive a few warnings from areas of postfix that we haven't yet used.
 
 ```bash
 service postfix restart
@@ -833,7 +841,7 @@ userdb {
 }
 ```
 
-And finally now we configure Dovecot to connect to the proper database in /etc/dovecot/dovecot-sql.conf.ext  
+And finally now we configure Dovecot to connect to the proper database in /etc/dovecot/dovecot-sql.conf.ext (you will need to find, uncomment, and then edit or append most of these).
 
 Note: You will need to provide the password for your 'mailuser' DB user where $mailuserpass is.
 
@@ -853,17 +861,36 @@ chmod -R o-rwx /etc/dovecot
 
 Finally we're going to do a config hack in Dovecot that forces the use of secure sockets by setting the listener ports to 0 and configure our LMTP service by editing /etc/dovecot/conf.d/10-master.conf
 
+NOTE: Replace the entire contents of your 10-master.conf file with the following
+
 ```
+#default_process_limit = 100
+#default_client_limit = 1000
+
+# Default VSZ (virtual memory size) limit for service processes. This is mainly
+# intended to catch and kill processes that leak memory before they eat up
+# everything.
+#default_vsz_limit = 256M
+
+# Login user is internally used by login processes. This is the most untrusted
+# user in Dovecot system. It shouldn't have access to anything at all.
+#default_login_user = dovenull
+
+# Internal user is used by unprivileged processes. It should be separate from
+# login user, so that login processes can't disturb other processes.
+#default_internal_user = dovecot
+
 service imap-login {
   inet_listener imap {
     port = 0
   }
-  
+}
+
 service pop3-login {
   inet_listener pop3 {
     port = 0
   }
-
+}
 
 service lmtp {
   unix_listener /var/spool/postfix/private/dovecot-lmtp {
@@ -879,11 +906,21 @@ service lmtp {
   #}
   user=mail
 }
-```
 
-One last edit to that same file is to replace the entire service auth and service auth-worker sections with what I provide below:
+service imap {
+  # Most of the memory goes to mmap()ing files. You may need to increase this
+  # limit if you have huge mailboxes.
+  #vsz_limit = $default_vsz_limit
 
-```
+  # Max. number of IMAP processes (connections)
+  #process_limit = 1024
+}
+
+service pop3 {
+  # Max. number of POP3 processes (connections)
+  #process_limit = 1024
+}
+
 service auth {
   # auth_socket_path points to this userdb socket by default. It's typically
   # used by dovecot-lda, doveadm, possibly imap process, etc. Its default
@@ -913,6 +950,17 @@ service auth-worker {
   # $default_internal_user.
   user = mail
 }
+
+service dict {
+  # If dict proxy is used, mail processes should have access to its socket.
+  # For example: mode=0660, group=vmail and global mail_access_groups=vmail
+  unix_listener dict {
+    #mode = 0600
+    #user = 
+    #group = 
+  }
+}
+
 ```
 
 Next we're going to configure Dovecot logging to show what cipher suite is being used when it logs by editing /etc/dovecot/conf.d/10-logging.conf
@@ -1230,8 +1278,8 @@ nameserver 127.0.0.1
 Now we will use resolvconf to regenerate our /etc/resolv.conf file and verify it works so the file will contain correct information on reboots.
 
 ```bash
-resolveconf -a eth0.inet
-resolveconf -u
+resolvconf -a eth0.inet
+resolvconf -u
 ```
 
 Now cat /etc/resolv.conf and it should say
@@ -1311,15 +1359,17 @@ WebMail Configuration
 
 The last service we need to setup is going to be nginx, php-fpm, and a web application called 'roundcube'.  We will be installing nginx from wheezy-backports, because it is a much newer version which enables some additional security functionality called OCSP stapling.
 
+NOTE: Your libicu version may be different. If so, just issue an 'aptitude search libicu' and see what version you should be installing
+
 ```bash
 apt-get -t wheezy-backports install -y nginx
-apt-get install -y php5-fpm php5-mysql php-pear php5-mcrypt php5-dev aspell libicu44 libicu-dev
+apt-get install -y php5-fpm php5-mysql php-pear php5-mcrypt php5-dev aspell libicu48 libicu-dev
 pecl install intl
 ```
 
 We're going to put our configuration for nginx into a file named /etc/nginx/sites-available/roundcube
 
-Note: You'll need to ensure that you change the server_name parameter to match your appropriate URL and also set your SSL certificate and key to your self-signed or the appropriate one provided by your CA.
+Note: You'll need to ensure that you change the server_name parameter to match your appropriate URL and also set your SSL certificate and key to your self-signed or the appropriate one provided by your CA. You'll need to remove ssl_stapling, ssl_stapling_verify, and ssl_trusted_certificate if you're using a self-signed cert.
 
 ```
 #rate limit requests to prevent bruteforce
@@ -1408,7 +1458,7 @@ wget http://sourceforge.net/projects/roundcubemail/files/roundcubemail/1.0.2/rou
 mv download roundcubemail-1.0.2.tar.gz
 tar xvf roundcubemail-1.0.2.tar.gz
 mkdir -pv /usr/share/nginx/www/roundcube
-cp ~/roundcubemail-1.0.2/* /usr/share/nginx/www/roundcube/
+cp -R ~/roundcubemail-1.0.2/* /usr/share/nginx/www/roundcube/
 ```
 
 Now that this is out of the way, we need to configure PHP.
@@ -1426,7 +1476,7 @@ Add to bottom:
 extension=intl.so
 ```
 
-Then in /etc/php5/fpm/pool.d/www.conf uncomment the following two lines
+Then in /etc/php5/fpm/pool.d/www.conf uncomment the following two lines (if they aren't already)
 ```
 listen.owner = www-data
 listen.group = www-data
@@ -1470,7 +1520,7 @@ Now we need to set the roundcube site to be enabled in nginx and bounce services
 cd /etc/nginx/sites-enabled/
 rm -f default
 ln -s /etc/nginx/sites-available/roundcube roundcube
-service php-fpm restart
+service php5-fpm restart
 service nginx restart
 ```
 
