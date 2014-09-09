@@ -1494,7 +1494,7 @@ Note: Please change $password to a new randomly generated password that you've s
 
 ```sql
 CREATE DATABASE roundcubemail;
-GRANT ALL PRIVILEGES ON roundcubemail.* TO username@localhost IDENTIFIED BY '$password';
+GRANT ALL PRIVILEGES ON roundcubemail.* TO roundcube@localhost IDENTIFIED BY '$password';
 FLUSH PRIVILEGES;
 ```
 
