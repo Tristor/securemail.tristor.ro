@@ -1238,6 +1238,17 @@ service postfix restart
 service dovecot restart
 ```
 
+### DMARC record
+A DMARC record is required for sending mail to some servers, like gmail for example. 
+DMARC basically tells the receiving server what to do if the mail doesn’t pass SPF or DKIM checks.
+You are going to want to make a txt record called: _dmarc.domain.com
+So, in this case it would be: _dmarc.tristor.ro 
+```
+"v=DMARC1; p=quarantine; rua=mailto:postmaster@tristor.ro"
+
+```
+
+
 ### Postfwd, Postgrey, DNSBLs, and BIND
 
 Alright, so the final anti-spam measure we'll be taking is using hybrid greylisting based off DNSBL scoring.  To accomplish this in a performant manner we'll be configuring BIND9 to act as a local DNS cache as well.
