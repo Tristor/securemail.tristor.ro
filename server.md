@@ -168,8 +168,13 @@ X11Forwarding no
 TCPKeepAlive yes
 UsePAM yes
 
+#These are the most secure of the available ciphers and MACs
 Ciphers aes256-ctr
 MACs hmac-sha2-512
+
+#These are a selection which are currently considered to be acceptable generally.
+#Ciphers aes256-ctr,aes192-ctr,aes128-ctr,arcfour256
+#MACs hmac-sha2-256,hmac-sha2-256-96,hmac-sha2-512,hmac-sha2-512-96,hmac-md5,hmac-sha1,umac-64@openssh.com,hmac-ripemd160
 ```
 
 Save the file and then run the following to restart the OpenSSH service:
