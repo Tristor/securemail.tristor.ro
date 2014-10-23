@@ -1259,7 +1259,7 @@ So, in this case it would be: _dmarc.tristor.ro
 Alright, so the final anti-spam measure we'll be taking is using hybrid greylisting based off DNSBL scoring.  To accomplish this in a performant manner we'll be configuring BIND9 to act as a local DNS cache as well.
 
 ```bash
-apt-get install postgrey postfwd bind9 dnsutils chrony 
+apt-get install postgrey postfwd bind9 dnsutils chrony resolvconf
 ```
 
 First let's configure chrony and BIND
