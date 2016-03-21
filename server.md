@@ -1,5 +1,11 @@
 #Building a Secure Email Server
 
+## Please note, these instructions are no longer maintained.
+### You are welcome to still follow them, however you should do independent research before doing so as the instructions may not account for new security issues that exist in the wild.
+### [Proton Mail](https://protonmail.com/) has now officially launched and I recommend it for anyone who doesn't want the hassle.
+### In most cases, they will probably be more secure than your own implementation based on these instructions.
+
+
 This guide was heavily inspired by Drew Crawford's blog article [NSA-proof your e-mail in 2 hours](http://sealedabstract.com/code/nsa-proof-your-e-mail-in-2-hours/).  In the course of attempting to follow his guide I found several things that didn't work quite right and also wanted to harden the server in ways which would further enhance security.  Drawing from my experience as a 10+ year seasoned Linux/UNIX administrator and now Senior Systems Engineer, I felt some tweaks were in order.  This guide is my attempt at an updated and improved step-by-step how to.
 
 

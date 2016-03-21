@@ -1,5 +1,9 @@
 #Securing Your Email
 
+## Please note, these instructions are no longer maintained.
+### You are welcome to still follow them, however you should do independent research before doing so as the instructions may not account for new security issues that exist in the wild.
+### [Proton Mail](https://protonmail.com/) has now officially launched and I recommend it for anyone who doesn't want the hassle.
+### In most cases, they will probably be more secure than your own implementation based on these instructions.
 
 In the wake of all the news surrounding the NSA's illegal spying activities on US citizens and people around the world and the reality that almost all free email systems propose the tradeoff where you turn over information about the services you subscribe to and the social networks and relationships you keep for their service, it's important that people take control of their communications channels and work towards securing them.  This website attempts to be a relatively comprehensive tutorial on configuring a suite of tools, both server and client, to make this possible.
 
